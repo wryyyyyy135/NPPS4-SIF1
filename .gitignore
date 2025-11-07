@@ -3,6 +3,7 @@
 /npps4.egg-info
 /util/sampledata
 /venv
+/archive
 
 *.bin
 *.pyc
