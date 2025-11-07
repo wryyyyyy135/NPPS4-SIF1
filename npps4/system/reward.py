@@ -48,7 +48,7 @@ async def try_cleanup_incentive():
     global _currently_cleaning
     if not _currently_cleaning:
         _currently_cleaning = True
-        await asyncio.sleep(delay=5)
+        await asyncio.sleep(5)
         async with idol.BasicSchoolIdolContext() as context:
             await cleanup_incentive(context)
         _currently_cleaning = False
@@ -236,7 +236,12 @@ async def has_at_least_one(
     q = (
         sqlalchemy.select(sqlalchemy.func.count())
         .select_from(main.Incentive)
-        .where(main.Incentive.add_type == int(add_type), main.Incentive.item_id == item_id)
+        .where(
+            main.Incentive.user_id == user.id,
+            main.Incentive.add_type == add_type.value,
+            main.Incentive.item_id == item_id,
+        )
+        .limit(1)
     )
     result = await context.db.main.execute(q)
     return (result.scalar() or 0) > 0

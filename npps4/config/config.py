@@ -1,9 +1,7 @@
-import importlib
-import importlib.machinery
-import importlib.util
 import os
+import runpy
 import sys
-import tomllib
+import types
 
 import Cryptodome.PublicKey.RSA
 
@@ -14,20 +12,7 @@ from typing import cast
 ROOT_DIR = os.path.normpath(os.path.dirname(__file__) + "/../..")
 os.makedirs(os.path.join(ROOT_DIR, "data"), exist_ok=True)
 
-
-try:
-    config_file = "config.toml"
-
-    if "NPPS4_CONFIG" in os.environ:
-        config_file = os.path.abspath(os.environ["NPPS4_CONFIG"])
-        print("overriding config file", config_file)
-
-    with open(os.path.normpath(os.path.join(ROOT_DIR, config_file)), "rb") as f:
-        CONFIG_DATA = data.ConfigData.model_validate(tomllib.load(f), strict=True)
-except IOError as e:
-    raise Exception(
-        "Unable to load config.toml. Try setting `NPPS4_CONFIG` environment variable or ensure `config.toml` is present in the project root."
-    ) from e
+CONFIG_DATA = data.ConfigData.model_validate({})
 
 try:
     with open(os.path.join(ROOT_DIR, CONFIG_DATA.main.server_private_key), "rb") as f:
@@ -105,12 +90,7 @@ def inject_server_info():
 
 
 def load_module_from_file(file: str, modulename: str):
-    loader = importlib.machinery.SourceFileLoader(modulename, file)
-    spec = importlib.util.spec_from_loader(loader.name, loader)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
-    return module
+    return types.SimpleNamespace(**runpy.run_path(file))
 
 
 _LOGIN_BONUS_FILE = os.path.join(ROOT_DIR, CONFIG_DATA.game.login_bonus)

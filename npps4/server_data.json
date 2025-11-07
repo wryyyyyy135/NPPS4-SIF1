@@ -5230,11 +5230,83 @@
 			]
 		},
 		{
+			"achievement_id": 10090010,
+			"rewards": [
+				{
+					"add_type": 5100,
+					"item_id": 14
+				}
+			]
+		},
+		{
 			"achievement_id": 10090011,
 			"rewards": [
 				{
 					"add_type": 5100,
 					"item_id": 15
+				}
+			]
+		},
+		{
+			"achievement_id": 10090012,
+			"rewards": [
+				{
+					"add_type": 5100,
+					"item_id": 15
+				}
+			]
+		},
+		{
+			"achievement_id": 10090013,
+			"rewards": [
+				{
+					"add_type": 5000,
+					"item_id": 291
+				}
+			]
+		},
+		{
+			"achievement_id": 10090014,
+			"rewards": [
+				{
+					"add_type": 5000,
+					"item_id": 300
+				}
+			]
+		},
+		{
+			"achievement_id": 10090015,
+			"rewards": [
+				{
+					"add_type": 5000,
+					"item_id": 314
+				}
+			]
+		},
+		{
+			"achievement_id": 10090016,
+			"rewards": [
+				{
+					"add_type": 5000,
+					"item_id": 450
+				}
+			]
+		},
+		{
+			"achievement_id": 10090017,
+			"rewards": [
+				{
+					"add_type": 5000,
+					"item_id": 453
+				}
+			]
+		},
+		{
+			"achievement_id": 10090018,
+			"rewards": [
+				{
+					"add_type": 5000,
+					"item_id": 457
 				}
 			]
 		},
@@ -48977,7 +49049,8 @@
 					3983,
 					3985,
 					3986,
-					3987
+					3987,
+					3989
 				]
 			]
 		},
@@ -49250,6 +49323,7 @@
 		},
 		{
 			"serial_code": "HESOYAM",
+			"caster": "upper",
 			"action": {
 				"message_en": "Health, Armour, and Money ($250,000)",
 				"message_jp": "健康、防具、お金 ($250,000)",
@@ -49274,6 +49348,7 @@
 		},
 		{
 			"serial_code": "INEEDSOMEHELP",
+			"caster": "upper",
 			"action": {
 				"message_en": "Health, Armour, and Money ($250,000)",
 				"message_jp": "健康、防具、お金 ($250,000)",
@@ -49298,6 +49373,7 @@
 		},
 		{
 			"serial_code": "ICANGOALLNIGHT",
+			"caster": "upper",
 			"action": {
 				"message_en": "Foo",
 				"message_jp": "Bar",
@@ -49317,6 +49393,7 @@
 		},
 		{
 			"serial_code": "VKYPQCF",
+			"caster": "upper",
 			"action": {
 				"message_en": "Foo",
 				"message_jp": "Bar",
@@ -49356,6 +49433,26 @@
 			"serial_code": "https://www.youtube.com/watch?v=Qk4KcP1VGIc",
 			"action": {
 				"function": "give_all_supporter_units"
+			}
+		},
+		{
+			"serial_code": "PHOEBE IS CUTE",
+			"usage_limit": {
+				"id": "Phoebe",
+				"global": false,
+				"amount": 50
+			},
+			"caster": "upper",
+			"action": {
+				"message_en": "Phoebe is cute",
+				"message_jp": "フィービーかわいい",
+				"items": [
+					{
+						"add_type": 1000,
+						"item_id": 5,
+						"amount": 25
+					}
+				]
 			}
 		}
 	],

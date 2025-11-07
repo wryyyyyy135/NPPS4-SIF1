@@ -28,7 +28,7 @@ class User(common.Base, kw_only=True):
     exp: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0)
     previous_exp: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0)
     next_exp: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=core.get_next_exp_cumulative(1))
-    game_coin: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0)
+    game_coin: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(common.IDInteger, default=0)
     free_sns_coin: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0)
     paid_sns_coin: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0)
     social_point: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0)
@@ -190,7 +190,7 @@ class Album(common.Base, kw_only=True):
     love_max_flag: sqlalchemy.orm.Mapped[bool] = sqlalchemy.orm.mapped_column(default=False, index=True)
     rank_level_max_flag: sqlalchemy.orm.Mapped[bool] = sqlalchemy.orm.mapped_column(default=False, index=True)
     highest_love_per_unit: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0)
-    favorite_point: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0)
+    favorite_point: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(default=0, index=True)
     sign_flag: sqlalchemy.orm.Mapped[bool] = sqlalchemy.orm.mapped_column(default=False)
 
 
@@ -451,7 +451,23 @@ class LiveReplay(common.Base, kw_only=True):
     __table_args__ = (sqlalchemy.UniqueConstraint(user_id, live_difficulty_id, use_skill),)
 
 
-engine = sqlalchemy.ext.asyncio.create_async_engine(config.get_database_url())
+class PlayerRanking(common.Base, kw_only=True):
+    id: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(common.IDInteger, init=False, primary_key=True)
+    user_id: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(common.IDInteger, sqlalchemy.ForeignKey(User.id))
+    day: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column()
+    score: sqlalchemy.orm.Mapped[int] = sqlalchemy.orm.mapped_column(common.IDInteger)
+
+    __table_args__ = (
+        sqlalchemy.UniqueConstraint(user_id, day),
+        sqlalchemy.Index(None, user_id.asc(), day.desc(), score.desc()),
+    )
+
+
+class MigrationFixes(common.Base, kw_only=True):
+    revision: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(primary_key=True)
+
+
+engine = sqlalchemy.ext.asyncio.create_async_engine(config.get_database_url(), connect_args={"autocommit": False})
 sessionmaker = sqlalchemy.ext.asyncio.async_sessionmaker(engine)
 
 

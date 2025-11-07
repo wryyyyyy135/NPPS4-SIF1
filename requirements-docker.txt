@@ -1,0 +1,3 @@
+psycopg[binary]
+gunicorn
+uvicorn-worker

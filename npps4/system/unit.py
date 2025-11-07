@@ -20,7 +20,7 @@ from .. import util
 from ..db import main
 from ..db import unit
 
-from typing import Literal, overload
+from typing import Literal, cast, overload
 
 
 @dataclasses.dataclass
@@ -529,6 +529,7 @@ async def idolize(context: idol.BasicSchoolIdolContext, user: main.User, unit_da
 
 LOVE_POS_CALC_ORDER = (4, 0, 1, 2, 3, 5, 6, 7, 8)
 LOVE_POS_CALC_WEIGHT = (5, 1, 1, 1, 1, 1, 1, 1, 1)
+MAX_LOVE_ADD = [2147483647] * 9
 
 
 def _get_added_love(love: int, current_love: list[int], max_love: list[int]):
@@ -552,7 +553,7 @@ def _get_added_love(love: int, current_love: list[int], max_love: list[int]):
         if subtracted == 0:
             break
 
-    return after_love
+    return after_love, love
 
 
 async def add_love_by_deck(context: idol.BasicSchoolIdolContext, user: main.User, deck_index: int, love: int):
@@ -575,13 +576,31 @@ async def add_love_by_deck(context: idol.BasicSchoolIdolContext, user: main.User
     ]
 
     before_love = [u.love for u in units]
-    loves = _get_added_love(love, before_love, max_loves)
+    loves, remaining = _get_added_love(love, before_love, max_loves)
+
+    total_unit_id_increment: dict[int, int] = {}  # for profile tracking
+
+    for ud, before_love_int, after_love_int in zip(units, before_love, loves):
+        value = total_unit_id_increment.get(ud.unit_id, 0) + after_love_int - before_love_int
+        total_unit_id_increment[ud.unit_id] = value
+
+    if remaining > 0:
+        extra, _ = _get_added_love(remaining, loves, MAX_LOVE_ADD)
+
+        for ud, before_love_int, after_love_int in zip(units, loves, extra):
+            value = total_unit_id_increment.get(ud.unit_id, 0) + after_love_int - before_love_int
+            total_unit_id_increment[ud.unit_id] = value
 
     for ur, ud, new_love in zip(unit_rarities, units, loves):
         ud.love = new_love
 
-        if ud.love >= ur.after_love_max:
-            await album.update(context, user, ud.unit_id, love_max=True)
+        await album.update(
+            context,
+            user,
+            ud.unit_id,
+            love_max=ud.love >= ur.after_love_max,
+            favorite_point=album.Increment(total_unit_id_increment[ud.unit_id]),
+        )
 
     await context.db.main.flush()
     return common.BeforeAfter[list[int]](before=before_love, after=loves)
@@ -748,13 +767,17 @@ def calculate_bonus_stat_of_removable_skill(removable_skill: unit.RemovableSkill
 
 
 @common.context_cacheable("unit_type_member_tag")
-async def unit_type_has_tag(context: idol.BasicSchoolIdolContext, unit_type_member_tag_ids: tuple[int, int], /):
+async def _unit_type_has_tag_impl(context: idol.BasicSchoolIdolContext, unit_type_member_tag_ids: tuple[int, int], /):
     q = sqlalchemy.select(unit.UnitTypeMemberTag).where(
         unit.UnitTypeMemberTag.unit_type_id == unit_type_member_tag_ids[0],
         unit.UnitTypeMemberTag.member_tag_id == unit_type_member_tag_ids[1],
     )
     result = await context.db.unit.execute(q)
     return result.scalar() is not None
+
+
+async def unit_type_has_tag(context: idol.BasicSchoolIdolContext, unit_type_id: int, member_tag_id: int):
+    return await _unit_type_has_tag_impl(context, (unit_type_id, member_tag_id))
 
 
 @common.context_cacheable("unit_leader_skill")
@@ -776,7 +799,8 @@ async def get_removable_skill_info(context: idol.BasicSchoolIdolContext, user: m
     return result.scalar()
 
 
-async def get_removable_skill_game_info(context: idol.BasicSchoolIdolContext, /, removable_skill_id: int):
+@common.context_cacheable("unit_removable_skill")
+async def get_removable_skill_game_info(context: idol.BasicSchoolIdolContext, removable_skill_id: int, /):
     return await db.get_decrypted_row(context.db.unit, unit.RemovableSkill, removable_skill_id)
 
 
@@ -865,7 +889,7 @@ async def detach_unit_removable_skill(context: idol.BasicSchoolIdolContext, unit
         main.UnitRemovableSkill.unit_owning_user_id == unit.id,
         main.UnitRemovableSkill.unit_removable_skill_id == removable_skill_id,
     )
-    result = await context.db.main.execute(q)
+    result = cast(sqlalchemy.CursorResult, await context.db.main.execute(q))
     return result.rowcount > 0
 
 

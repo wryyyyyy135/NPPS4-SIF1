@@ -1,4 +1,5 @@
 import copy
+import itertools
 import json
 import math
 
@@ -10,13 +11,14 @@ from .. import util
 from ..config import config
 from ..system import achievement
 from ..system import advanced
-from ..system import album
 from ..system import class_system as class_system_module
 from ..system import common
 from ..system import effort
+from ..system import item
 from ..system import live
 from ..system import live_model
 from ..system import museum
+from ..system import ranking
 from ..system import reward
 from ..system import scenario
 from ..system import subscenario
@@ -358,25 +360,29 @@ async def live_schedule(context: idol.SchoolIdolUserParams) -> LiveScheduleRespo
 
 
 DEBUG_SERVER_SCORE_CALCULATE = False
-DEBUG_SERVER_CONSUME_LP = True
 
 
 @idol.register("live", "partyList")
 async def live_partylist(context: idol.SchoolIdolUserParams, request: LivePartyListRequest) -> LivePartyListResponse:
     current_user = await user.get_current(context)
 
-    # Check LP
+    # Check live info
     live_info = await live.get_live_info_table(context, request.live_difficulty_id)
     if live_info is None:
         raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_FOUND)
-    if DEBUG_SERVER_CONSUME_LP:
-        if live_info.capital_type == 2:
+
+    # Check LP
+    cap_value = live_info.capital_value * request.lp_factor
+    match live_info.capital_type:
+        case 1:
+            if not user.has_energy(current_user, cap_value):
+                if current_user.energy_max < cap_value:
+                    raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_ENOUGH_MAX_ENERGY)
+                else:
+                    raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_ENOUGH_CURRENT_ENERGY)
+        case _:
             # TODO
             raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_ENOUGH_EVENT_POINT)
-        if live_info.capital_type == 1 and not user.has_energy(
-            current_user, live_info.capital_value * request.lp_factor
-        ):
-            raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_ENOUGH_CURRENT_ENERGY)
 
     live_setting = await live.get_live_setting(context, live_info.live_setting_id)
     if live_setting is None:
@@ -486,15 +492,22 @@ async def live_play(context: idol.SchoolIdolUserParams, request: LivePlayRequest
     live_info = await live.get_live_info_table(context, request.live_difficulty_id)
     if live_info is None:
         raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_FOUND)
-    if DEBUG_SERVER_CONSUME_LP:
-        cap_value = live_info.capital_value * request.lp_factor
-        if live_info.capital_type == 2:
+
+    # Check LP
+    cap_value = live_info.capital_value * request.lp_factor
+    match live_info.capital_type:
+        case 1:
+            if not user.has_energy(current_user, cap_value):
+                if current_user.energy_max < cap_value:
+                    raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_ENOUGH_MAX_ENERGY)
+                else:
+                    raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_ENOUGH_CURRENT_ENERGY)
+        case _:
             # TODO
             raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_ENOUGH_EVENT_POINT)
-        if live_info.capital_type == 1 and not user.has_energy(current_user, cap_value):
-            raise idol.error.by_code(idol.error.ERROR_CODE_LIVE_NOT_ENOUGH_CURRENT_ENERGY)
-        # Consume LP
-        user.sub_energy(current_user, cap_value)
+
+    # Consume LP
+    user.sub_energy(current_user, cap_value)
 
     live_setting = await live.get_live_setting_from_difficulty_id(context, request.live_difficulty_id)
     if live_setting is None:
@@ -588,6 +601,30 @@ async def live_reward(context: idol.SchoolIdolUserParams, request: LiveRewardReq
     live_clear_data.hi_combo_cnt = max(live_clear_data.hi_combo_cnt, request.max_combo)
     live_clear_data.clear_cnt = live_clear_data.clear_cnt + 1
 
+    special_reward: list[common.AnyItem] = []
+    if live_clear_data.clear_cnt == 1:
+        # First clear. Give loveca only if:
+        # * User cleared Easy, Normal, and Hard
+        # * User cleared Expert
+        # * User cleared Master
+        if live_setting.difficulty > 3:
+            # User cleared Expert or higher. Give loveca directly.
+            special_reward.append(item.loveca(1))
+        else:
+            # User cleared Easy, Normal, or Hard. Only give loveca if all is cleared.
+            enh_list = (await live.get_enh_live_difficulty_ids(context, request.live_difficulty_id)).copy()
+            enh_list[live_setting.difficulty] = request.live_difficulty_id
+            cleared = True
+
+            for i in range(1, 4):
+                live_clear_data_adjacent = await live.get_live_clear_data(context, current_user, enh_list[i])
+                if live_clear_data_adjacent is None or live_clear_data_adjacent.clear_cnt == 0:
+                    cleared = False
+                    break
+
+            if cleared:
+                special_reward.append(item.loveca(1))
+
     # Get accomplished live goals
     old_live_goals = set(await live.get_achieved_goal_id_list(context, old_live_clear_data))
     new_live_goals = set(await live.get_achieved_goal_id_list(context, live_clear_data))
@@ -598,7 +635,7 @@ async def live_reward(context: idol.SchoolIdolUserParams, request: LiveRewardReq
     )
 
     # Give live goal rewards
-    for reward_data in live_goal_rewards:
+    for reward_data in itertools.chain(live_goal_rewards, special_reward):
         await advanced.add_item(context, current_user, reward_data)
 
     # This is the intended EXP and G drop
@@ -772,6 +809,9 @@ async def live_reward(context: idol.SchoolIdolUserParams, request: LiveRewardReq
             request.precise_score_log,
         )
 
+    # Log current player ranking
+    await ranking.increment_daily_score(context, current_user, score)
+
     # Create response
     reward_unit_list = LiveRewardUnitList()
     reward_unit_list.live_clear.append(live_clear_drop.as_item_reward)
@@ -812,7 +852,7 @@ async def live_reward(context: idol.SchoolIdolUserParams, request: LiveRewardReq
         goal_accomp_info=LiveRewardGoalAccomplishedInfo(
             achieved_ids=accomplished_live_goals, rewards=live_goal_rewards
         ),
-        special_reward_info=[],  # TODO: Give 1 loveca on clearing this track for the first time.
+        special_reward_info=special_reward,
         accomplished_achievement_list=await achievement.to_game_representation(
             context, accomplished_achievement.accomplished, accomplished_achievement_rewards
         ),
