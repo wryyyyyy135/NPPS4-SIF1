@@ -1,7 +1,7 @@
 import enum
 
 # https://w.atwiki.jp/lovelive-sif/pages/38.html
-LIVE_EXP_DROP = [12, 26, 43, 83]
+LIVE_EXP_DROP = [120, 260, 430, 830]
 LIVE_GOLD_DROP = [
     [2250, 1800, 1200, 600, 300],
     [3000, 2400, 1600, 800, 400],
