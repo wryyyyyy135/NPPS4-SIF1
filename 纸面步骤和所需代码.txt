@@ -1,0 +1,19 @@
+根据视频准备好文件
+安装python
+解压资源包
+
+打开cmd，输入pip install -r requirements.txt安装运行所需环境
+
+打开根目录的config.toml，找到archive_root一栏，改为archive_root = "archive"
+
+cmd进入虚拟环境
+python -m venv venv
+
+venv\Scripts\activate
+
+完成后输入uvicorn npps4.run.app:main --port 51376 --host 0.0.0.0 --reload运行服务器
+
+打开浏览器进入以下网站https://ethanaobrien.github.io/sif-patcher/
+
+再次开启服务器需要在cmd输入venv\Scripts\activate重新进入虚拟环境后才能运行服务端
+
