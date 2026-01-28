@@ -5,9 +5,12 @@
 /npps4.egg-info
 /util/sampledata
 /venv
+/archive
 
 *.bin
 *.pyc
 /*.ipynb
 /config.toml
 /maintenance.txt
+
+server.log
