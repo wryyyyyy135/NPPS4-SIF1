@@ -1,12 +1,12 @@
 Null-Pointer Private Server: Revisited
 =====
 
-[![Python: 3.12](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
-[![Static Type Checker: PyRight](https://img.shields.io/badge/Static%20Type%20Checker-PyRight-CEB98F)](https://github.com/microsoft/pyright)
+[![Python: 3.14](https://img.shields.io/badge/Python-3.14-blue)](https://www.python.org/)
+[![Static Type Checker: Pyright](https://img.shields.io/badge/Static%20Type%20Checker-Pyright-CEB98F)](https://github.com/microsoft/pyright)
 [![Code Style: Black](https://img.shields.io/badge/Code%20Style-Black-000000.svg)](https://github.com/psf/black)
-[![Syntax Check](https://github.com/DarkEnergyProcessor/NPPS4/actions/workflows/syntax-check.yml/badge.svg)](https://github.com/DarkEnergyProcessor/NPPS4/actions/workflows/syntax-check.yml)
+[![Build](https://github.com/DarkEnergyProcessor/NPPS4/actions/workflows/main.yml/badge.svg)](https://github.com/DarkEnergyProcessor/NPPS4/actions/workflows/main.yml)
 
-WIP SIF 9.11 private server written in Python 3.12 using FastAPI.
+WIP SIF1 v9.11 private server written in Python 3.12+ using FastAPI.
 
 Notes
 -----
@@ -18,7 +18,7 @@ Notes
 Requirements
 -----
 
-NPPS4 currently supports only Python 3.12 (and possibly later version). Python 3.11 and earlier is not supported.
+NPPS4 supports Python 3.12 and later. Python 3.11 and earlier is not supported.
 
 Install Manually
 ----
@@ -26,7 +26,9 @@ Install Manually
 1. Install Python 3.12 or later.
 2. Create virtual environment.
 3. Activate it.
-4. `pip install -r requirements.txt`
+4. `pip install -r requirements.txt -r requirements-perf.txt`
+
+Note: If you're using Termux, make sure to have Rust toolchain and remove `-r requirements-perf.txt`.
 
 Install with Docker
 -----
